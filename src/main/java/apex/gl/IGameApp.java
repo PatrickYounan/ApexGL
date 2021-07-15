@@ -10,7 +10,7 @@ public interface IGameApp {
 
     void render(GameStore store);
 
-    void update(GameStore store, double delta);
+    void update(GameStore store, float delta);
 
     Window createWindow();
 }

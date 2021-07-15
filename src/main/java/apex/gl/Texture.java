@@ -1,13 +1,12 @@
 package apex.gl;
 
-import org.lwjgl.BufferUtils;
+import org.lwjgl.system.MemoryStack;
 
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
+import java.util.Objects;
 
 import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.GL13.GL_TEXTURE0;
-import static org.lwjgl.opengl.GL13.glActiveTexture;
 import static org.lwjgl.opengl.GL30.glGenerateMipmap;
 import static org.lwjgl.stb.STBImage.*;
 
@@ -18,37 +17,52 @@ import static org.lwjgl.stb.STBImage.*;
 public final class Texture implements IDisposable {
 
     private final int textureId;
-    private final int width;
-    private final int height;
-    private final int channels;
+
+    private int width;
+    private int height;
 
     private Texture(GameStore store, String path) {
         this.textureId = glGenTextures();
+
         glBindTexture(GL_TEXTURE_2D, textureId);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        stbi_set_flip_vertically_on_load(true);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-        IntBuffer width = BufferUtils.createIntBuffer(1);
-        IntBuffer height = BufferUtils.createIntBuffer(1);
-        IntBuffer channels = BufferUtils.createIntBuffer(1);
-        this.width = width.get();
-        this.height = height.get();
-        this.channels = channels.get();
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            IntBuffer width = stack.callocInt(1);
+            IntBuffer height = stack.callocInt(1);
+            IntBuffer channels = stack.callocInt(1);
 
-        ByteBuffer buffer = stbi_load(ClassLoader.getSystemResource(path).getPath(), width, height, channels, 0);
-        if (buffer == null)
-            return;
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, this.width, this.height, 0, GL_RGB, GL_UNSIGNED_BYTE, buffer);
-        glGenerateMipmap(GL_TEXTURE_2D);
-        stbi_image_free(buffer);
+            stbi_set_flip_vertically_on_load(true);
+
+            ByteBuffer buffer = stbi_load(path, width, height, channels, 0);
+            Objects.requireNonNull(buffer, "Unable to load texture from path: " + path);
+
+            this.width = width.get();
+            this.height = height.get();
+
+            switch (channels.get()) {
+            case 3:
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, this.width, this.height, 0, GL_RGB, GL_UNSIGNED_BYTE, buffer);
+                break;
+            case 4:
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, this.width, this.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
+                break;
+            default:
+                throw new RuntimeException("Unable to load texture due to unknown way of handling channel size: " + channels.get(0));
+            }
+            glGenerateMipmap(GL_TEXTURE_2D);
+
+            stbi_image_free(buffer);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         store.addDisposable(this);
     }
 
     public void bind() {
-        glActiveTexture(GL_TEXTURE0); // temporary.
         glBindTexture(GL_TEXTURE_2D, textureId);
     }
 
@@ -66,10 +80,6 @@ public final class Texture implements IDisposable {
 
     public int getTextureId() {
         return textureId;
-    }
-
-    public int getChannels() {
-        return channels;
     }
 
     @Override

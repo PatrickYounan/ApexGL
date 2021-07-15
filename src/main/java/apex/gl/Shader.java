@@ -1,8 +1,11 @@
 package apex.gl;
 
+import org.joml.Matrix4f;
+
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileReader;
+import java.net.URL;
+import java.nio.FloatBuffer;
 import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.Queue;
@@ -51,7 +54,9 @@ public final class Shader implements IBindable, IDisposable {
 
     public Shader attach(String file, ShaderType shaderType) {
         StringBuilder sb = new StringBuilder();
-        try (BufferedReader reader = new BufferedReader(new FileReader(new File(getClass().getResource(file).toURI())))) {
+        URL path = getClass().getClassLoader().getResource(file);
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(path.getPath()))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 if (line.isEmpty())
@@ -75,14 +80,6 @@ public final class Shader implements IBindable, IDisposable {
         return uniforms.get(name);
     }
 
-    public void setInt(String name, int value) {
-        glUniform1i(getLocation(name), value);
-    }
-
-    public void setFloat(String name, float value) {
-        glUniform1f(getLocation(name), value);
-    }
-
     public Shader link() {
         glLinkProgram(programId);
         glValidateProgram(programId);
@@ -96,6 +93,23 @@ public final class Shader implements IBindable, IDisposable {
         unbind();
         store.addDisposable(this);
         return this;
+    }
+
+    public void uploadInt(String name, int value) {
+        glUniform1i(getLocation(name), value);
+    }
+
+    public void uploadFloat(String name, float value) {
+        glUniform1f(getLocation(name), value);
+    }
+
+    public void uploadTexture(String name, int slot) {
+        glUniform1i(getLocation(name), slot);
+    }
+
+    public void uploadCamera2D(String projection, String view, Camera2D camera) {
+        camera.uploadProjection(getLocation(projection));
+        camera.uploadView(getLocation(view));
     }
 
     public static Shader create(GameStore store) {

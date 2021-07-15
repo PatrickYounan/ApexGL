@@ -1,9 +1,16 @@
 #version 400 core
 layout (location = 0) in vec3 aPosition;
+layout (location = 1) in vec4 aColor;
+layout (location = 2) in vec2 aTexCoords;
 
-out vec3 color;
+uniform mat4 uProjection;
+uniform mat4 uView;
+
+out vec2 texCoord;
+out vec4 fragColor;
 
 void main() {
-    gl_Position = vec4(aPosition, 1.0);
-    color = vec3(0.2, 1.0, 0.6);
+    fragColor = aColor;
+    texCoord = aTexCoords;
+    gl_Position = uProjection * uView * vec4(aPosition, 1.0);
 }

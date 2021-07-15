@@ -42,7 +42,7 @@ public final class Launcher {
             if (!window.isVsync()) {
                 if (updateDelta >= 1) {
                     glfwPollEvents();
-                    app.update(store, updateDelta);
+                    app.update(store, (float) updateDelta);
                     ticks++;
                     updateDelta--;
                 }
@@ -54,7 +54,7 @@ public final class Launcher {
                 }
             } else {
                 glfwPollEvents();
-                app.update(store, updateFrames);
+                app.update(store, (float) updateFrames);
                 ticks++;
 
                 app.render(store);

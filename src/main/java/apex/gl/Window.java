@@ -3,12 +3,13 @@ package apex.gl;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWVidMode;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL.createCapabilities;
-import static org.lwjgl.opengl.GL11.glClearColor;
-import static org.lwjgl.opengl.GL11.glViewport;
+import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.system.MemoryUtil.NULL;
 
 /**
@@ -18,6 +19,8 @@ public final class Window {
 
     static final int DEFAULT_WIDTH = 800;
     static final int DEFAULT_HEIGHT = 600;
+
+    private final List<IResized> resizedList = new ArrayList<>();
 
     private double frameCap = 60;
 
@@ -74,7 +77,17 @@ public final class Window {
             this.width = w;
             this.height = h;
         });
+        glfwSetWindowSizeCallback(window, (window, w, h) -> {
+            for (int i = 0; i < resizedList.size(); i++) {
+                IResized resized = resizedList.get(i);
+                if (resized == null)
+                    continue;
+                resized.resize(this.width, this.height);
+            }
+        });
 
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glViewport(0, 0, width, height);
         glClearColor(0f, 0f, 0f, 0f);
     }
@@ -82,6 +95,10 @@ public final class Window {
     public void terminate() {
         glfwTerminate();
         Objects.requireNonNull(glfwSetErrorCallback(null)).free();
+    }
+
+    public void addResizeHook(IResized resized) {
+        resizedList.add(resized);
     }
 
     public void swapBuffers() {

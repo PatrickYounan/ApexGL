@@ -23,6 +23,10 @@ public final class GameStore {
         while (!disposables.isEmpty()) disposables.poll().dispose();
     }
 
+    public void addResizeHook(IResized resized) {
+        window.addResizeHook(resized);
+    }
+
     public int getWidth() {
         return window.getWidth();
     }

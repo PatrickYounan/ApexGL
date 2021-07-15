@@ -12,6 +12,7 @@ import static org.lwjgl.opengl.GL30.*;
  */
 public final class VAOModel implements Model {
 
+    private Texture texture;
     private int vao, vbo, ebo;
 
     private boolean binded;
@@ -37,10 +38,17 @@ public final class VAOModel implements Model {
         store.addDisposable(this);
     }
 
+    public void setTexture(Texture texture) {
+        this.texture = texture;
+    }
+
     @Override
     public void bind() {
         if (binded)
             return;
+
+        if (texture != null)
+            texture.bind();
 
         glBindVertexArray(vao);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -52,6 +60,9 @@ public final class VAOModel implements Model {
     public void unbind() {
         if (!binded)
             return;
+
+        if (texture != null)
+            texture.unbind();
 
         glBindVertexArray(0);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
